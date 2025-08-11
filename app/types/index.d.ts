@@ -14,7 +14,7 @@ interface Resume {
   feedback: Feedback;
 }
 
-export interface Feedback {
+interface Feedback {
   overallScore: number;
   ATS: {
     score: number;
