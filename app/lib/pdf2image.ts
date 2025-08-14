@@ -13,14 +13,27 @@ async function loadPdfJs(): Promise<any> {
   if (loadPromise) return loadPromise;
 
   isLoading = true;
-  // @ts-expect-error - pdfjs-dist/build/pdf.mjs is not a module
-  loadPromise = import("pdfjs-dist/build/pdf.mjs").then((lib) => {
-    // Set the worker source to use local file
-    lib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-    pdfjsLib = lib;
-    isLoading = false;
-    return lib;
-  });
+    // Import pdfjs-dist with proper typing
+    loadPromise = import("pdfjs-dist").then((lib) => {
+      // Set the worker source to use local file
+          lib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+      pdfjsLib = lib;
+      isLoading = false;
+      return lib;
+    }).catch((error) => {
+      console.error("Failed to load pdfjs-dist locally, trying CDN fallback:", error);
+      // Fallback to CDN if local worker fails
+      return import("pdfjs-dist").then((lib) => {
+        lib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.54/pdf.worker.min.mjs";
+        pdfjsLib = lib;
+        isLoading = false;
+        return lib;
+      }).catch((cdnError) => {
+        console.error("Failed to load pdfjs-dist from CDN:", cdnError);
+        isLoading = false;
+        throw new Error("Failed to load pdfjs-dist from both local and CDN sources");
+      });
+    });
 
   return loadPromise;
 }
@@ -47,7 +60,9 @@ export async function convertPdfToImage(
       context.imageSmoothingQuality = "high";
     }
 
-    await page.render({ canvasContext: context!, viewport }).promise;
+    if (context) {
+      await page.render({ canvasContext: context, viewport }).promise;
+    }
 
     return new Promise((resolve) => {
       canvas.toBlob(
