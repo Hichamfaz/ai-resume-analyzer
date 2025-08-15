@@ -65,6 +65,10 @@ const upload = () => {
             setStatusText('analysis complete, redirecting...');
     
             console.log(data);
+            // Ensure navigation happens after all processing is complete
+            setTimeout(() => {
+                navigate(`/resume/${uuid}`);
+            }, 100);
     
         }
 
